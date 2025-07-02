@@ -1,0 +1,13 @@
+106.196.20.106 - - [22/Jun/2025:06:46:35 +0000] "GET /addressbook/ HTTP/1.1" 200 2133
+106.196.20.106 - - [22/Jun/2025:06:46:36 +0000] "GET /addressbook/ HTTP/1.1" 200 2133
+106.196.20.106 - - [22/Jun/2025:06:46:37 +0000] "GET /addressbook/VAADIN/vaadinBootstrap.js?v=8.0.0.alpha2 HTTP/1.1" 200 3662
+106.196.20.106 - - [22/Jun/2025:06:46:37 +0000] "GET /addressbook/VAADIN/themes/valo/styles.css?v=8.0.0.alpha2 HTTP/1.1" 200 31378
+106.196.20.106 - - [22/Jun/2025:06:46:37 +0000] "GET /addressbook/VAADIN/widgetsets/com.vaadin.v7.Vaadin7WidgetSet/com.vaadin.v7.Vaadin7WidgetSet.nocache.js?1750574796840 HTTP/1.1" 200 3265
+106.196.20.106 - - [22/Jun/2025:06:46:37 +0000] "POST /addressbook/?v-1750574796841 HTTP/1.1" 200 8686
+106.196.20.106 - - [22/Jun/2025:06:46:38 +0000] "GET /addressbook/VAADIN/themes/valo/shared/img/spinner.gif HTTP/1.1" 200 7194
+106.196.20.106 - - [22/Jun/2025:06:46:38 +0000] "GET /addressbook/VAADIN/themes/valo/fonts/open-sans/OpenSans-Light-webfont.woff HTTP/1.1" 200 22248
+106.196.20.106 - - [22/Jun/2025:06:46:39 +0000] "GET /addressbook/VAADIN/widgetsets/com.vaadin.v7.Vaadin7WidgetSet/254B4FEDB43D00FE432E78151B19FD4D.cache.js HTTP/1.1" 200 417820
+106.196.20.106 - - [22/Jun/2025:06:46:40 +0000] "GET /addressbook/VAADIN/themes/valo/favicon.ico HTTP/1.1" 200 31005
+106.196.20.106 - - [22/Jun/2025:06:46:41 +0000] "GET /addressbook/VAADIN/themes/valo/fonts/open-sans/OpenSans-Regular-webfont.woff HTTP/1.1" 200 22660
+106.196.20.106 - - [22/Jun/2025:06:46:41 +0000] "POST /addressbook/UIDL/?v-uiId=0 HTTP/1.1" 200 3818
+65.49.20.67 - - [22/Jun/2025:09:54:13 +0000] "-" 400 2140

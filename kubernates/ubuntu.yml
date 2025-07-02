@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntupod
+spec:
+  containers:
+    - name: ubuntupod
+      image: ubuntu
+      command: ["/bin/bash", "-c", "while true; do echo hello-kubernates; sleep 10; done"]
