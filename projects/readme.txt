@@ -1,2 +1,2 @@
-## this folder conatins the projects
+## this folder contains the projects
 
