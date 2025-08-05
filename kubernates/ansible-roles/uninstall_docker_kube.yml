@@ -1,0 +1,123 @@
+- name: Uninstall Docker and Kubernetes from Ubuntu
+  hosts: ansible-node-kubeworker
+  become: yes
+  vars:
+    docker_services:
+      - docker
+      - containerd
+    docker_packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    docker_paths:
+      - /var/lib/docker
+      - /etc/docker
+      - /var/run/docker.sock
+
+    k8s_packages:
+      - kubeadm
+      - kubectl
+      - kubelet
+      - kubernetes-cni
+    k8s_paths:
+      - /etc/kubernetes
+      - /etc/cni
+      - /var/lib/kubelet
+      - /var/lib/etcd
+      - ~/.kube
+    iptables_flush_cmds:
+      - iptables -F
+      - iptables -X
+      - iptables -t nat -F
+      - iptables -t nat -X
+      - iptables -t raw -F
+      - iptables -t raw -X
+      - iptables -t mangle -F
+      - iptables -t mangle -X
+
+  tasks:
+    - name: Stop Docker services
+      service:
+        name: "{{ item }}"
+        state: stopped
+      loop: "{{ docker_services }}"
+      ignore_errors: yes
+
+    - name: Remove Docker packages
+      apt:
+        name: "{{ item }}"
+        state: absent
+        purge: yes
+      loop: "{{ docker_packages }}"
+      ignore_errors: yes
+
+    - name: Remove Docker directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ docker_paths }}"
+      ignore_errors: yes
+
+    - name: Autoremove unused packages
+      apt:
+        autoremove: yes
+        purge: yes
+
+    - name: Reset Kubernetes cluster
+      command: kubeadm reset -f
+      ignore_errors: yes
+
+    - name: Remove Kubernetes packages
+      apt:
+        name: "{{ item }}"
+        state: absent
+        purge: yes
+      loop: "{{ k8s_packages }}"
+      ignore_errors: yes
+
+    - name: Remove Kubernetes directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ k8s_paths }}"
+      ignore_errors: yes
+
+    - name: Flush iptables rules
+      command: "{{ item }}"
+      loop: "{{ iptables_flush_cmds }}"
+      ignore_errors: yes
+
+    - name: Remove Docker GPG key
+      file:
+        path: /etc/apt/keyrings/docker.gpg
+        state: absent
+
+    - name: Remove Docker APT source list
+      file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: absent
+
+    - name: Remove Kubernetes GPG key
+      file:
+        path: /etc/apt/trusted.gpg.d/kubernetes-archive-keyring.gpg
+        state: absent
+      ignore_errors: true  # in case it doesn't exist
+
+    - name: Remove Kubernetes APT source list
+      file:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        state: absent
+
+    - name: Remove old Kubernetes APT source list (xenial)
+      file:
+        path: /etc/apt/sources.list.d/kubernetes-xenial.list
+        state: absent
+      ignore_errors: true
+
+    - name: Clean up apt cache
+      apt:
+        update_cache: yes
+        autoclean: yes
+        autoremove: yes
+

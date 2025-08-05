@@ -1,0 +1,35 @@
+- name: Install dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+    update_cache: yes
+
+- name: Add Kubernetes GPG key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: Add Kubernetes APT repository (correct and supported)
+  apt_repository:
+    repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+    state: present
+    filename: kubernetes
+
+- name: Update APT package index
+  apt:
+    update_cache: yes
+
+- name: Install kubelet, kubeadm, and kubectl v{{ kube_version }}
+  apt:
+    name:
+      - "kubelet={{ kube_version }}-00"
+      - "kubeadm={{ kube_version }}-00"
+      - "kubectl={{ kube_version }}-00"
+    state: present
+    allow_downgrade: yes
+

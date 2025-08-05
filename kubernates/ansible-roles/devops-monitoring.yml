@@ -1,0 +1,8 @@
+# setup devops-tools for monitoring stack setup
+---
+- name: Install project related tools in master-node
+  hosts: ansible-node-monitoring
+  become: yes
+  roles:
+    - prometheus-inst
+    - grafana-inst

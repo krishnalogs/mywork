@@ -1,0 +1,8 @@
+# setup devops-kube-worker stack setup
+---
+- name: Install kube-worke-node and node exporter tools in worker-node
+  hosts: ansible-node-kubeworker
+  become: yes
+  roles:
+    - kube-worker-node
+    - nodeexp-inst

@@ -1,0 +1,8 @@
+# setup devops stack setup
+---
+- name: Install project related tools in master-node
+  hosts: localhost
+  become: yes
+  roles:
+    - kube-inst
+    - nodeexp-inst
