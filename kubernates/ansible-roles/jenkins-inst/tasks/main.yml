@@ -1,0 +1,26 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for jenkins-inst
+# Install jenkins
+- name: Add Jenkins key start
+  apt_key:
+    url: "{{ jenkins_repo_key }}"
+    state: present
+
+- name: Add Jenkins repository
+  apt_repository:
+    repo: "deb {{ jenkins_repo_url }} binary/"
+    state: present
+
+- name: Install Jenkins
+  apt:
+    name: "{{ jenkins_package }}"
+    state: present
+    update_cache: yes
+
+- name: Enable and start Jenkins
+  systemd:
+    name: jenkins
+    enabled: yes
+    state: started
+

@@ -1,0 +1,8 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for java-inst
+# Java Package
+java_package: openjdk-17-jdk
+
+# git package
+git_package: git

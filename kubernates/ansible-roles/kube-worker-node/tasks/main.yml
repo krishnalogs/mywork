@@ -1,0 +1,169 @@
+---
+- name: Remove old Kubernetes sources list if it exists
+  file:
+    path: /etc/apt/sources.list.d/kubernetes.list
+    state: absent
+
+- name: Remove old Kubernetes APT key (if present)
+  apt_key:
+    id: A031B4FA
+    state: absent
+  ignore_errors: yes
+
+- name: Update APT package index
+  apt:
+    update_cache: yes
+      # installing from here 
+# Installing docker 
+- name: Install Docker dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: present
+    update_cache: yes
+
+- name: Add Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable
+    state: present
+
+- name: Install Docker CE
+  apt:
+    name: docker-ce
+    state: present
+    update_cache: yes
+
+- name: Ensure Docker service is enabled and started
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Download cri-dockerd latest release
+  get_url:
+    url: https://sourceforge.net/projects/cri-dockerd.mirror/files/v0.3.17/cri-dockerd_0.3.17.3-0.ubuntu-focal_amd64.deb/download
+    dest: /tmp/cri-dockerd.deb
+
+- name: Install cri-dockerd package
+  apt:
+    deb: /tmp/cri-dockerd.deb
+    state: present
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start cri-dockerd service
+  systemd:
+    name: cri-docker.service
+    enabled: yes
+    state: started
+
+
+
+# installing kuberenetes
+- name: Install transport and required packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+
+- name: Create keyrings directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download Kubernetes GPG key
+  command: >
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key |
+    gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Add Kubernetes APT repository (new pkg source)
+  copy:
+    dest: /etc/apt/sources.list.d/kubernetes.list
+    content: |
+      deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /
+    mode: "0644"
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Unhold Kubernetes packages
+  shell: apt-mark unhold kubelet kubeadm kubectl
+  become: true
+
+- name: Remove held Kubernetes packages
+  shell: apt-get remove kubelet kubeadm kubectl -y 
+  become: true
+
+- name: Autoremove unused dependencies
+  apt:
+    autoremove: yes
+  become: true
+
+- name: Install specific Kubernetes versions
+  apt:
+    name:
+      - kubelet={{ kubernetes_version }}
+      - kubeadm={{ kubernetes_version }}
+      - kubectl={{ kubernetes_version }}
+    state: present
+    allow_downgrade: yes
+  become: true
+
+- name: Hold Kubernetes packages at current version
+  shell: apt-mark hold kubelet kubeadm kubectl
+  become: true
+
+- name: Ensure that swap is disabled
+  shell: |
+    sed -i '/ swap / s/^/#/' /etc/fstab
+    swapoff -a
+  args:
+    executable: /bin/bash
+
+- name: Enable and start kubelet
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
+
+- name: Enable required kernel modules
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Set sysctl parameters for Kubernetes
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  with_items:
+    - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { key: 'net.ipv4.ip_forward', value: '1' }
+
+- name: Apply sysctl settings
+  command: sysctl --system
+
+- name: Join the node to the Kubernetes cluster
+  shell: "{{ kubeadm_join_command }}"
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+

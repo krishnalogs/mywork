@@ -1,0 +1,7 @@
+kubernetes_version: "v1.28"
+keyring_path: "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+repo_file: "/etc/apt/sources.list.d/kubernetes.list"
+repo_url: "https://pkgs.k8s.io/core:/stable:/{{ kubernetes_version }}/deb/"
+repo_entry: "deb [signed-by={{ keyring_path }}] {{ repo_url }} /"
+
+

@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT-0
+- name: Installing the kubenetes using github repos
+  get_url:
+    url: "https://raw.githubusercontent.com/krishnalogs/Deployment-script/refs/heads/main/k8s-master.sh"
+    dest: "/tmp/install-k8s.sh"
+
+- name: Execute the install script
+  command: bash /tmp/install-k8s.sh

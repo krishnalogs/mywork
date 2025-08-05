@@ -1,0 +1,31 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for java-inst
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+# Install Git
+- name: Install Git
+  apt:
+    name: "{{ git_package }}"
+    state: present
+
+# Install Java
+- name: Install OpenJDK 17 package
+  apt:
+    name: "{{ java_package }}"
+    state: present
+
+# Ensure Java is available
+
+- name: Ensure Java is available
+  command: java -version
+  register: java_version
+  changed_when: false
+  failed_when: java_version.rc != 0
+
+# Show Java version info
+- name: Show Java version info
+  debug:
+    var: java_version.stdout_lines

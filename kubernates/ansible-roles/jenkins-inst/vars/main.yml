@@ -1,0 +1,9 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for jenkins-inst
+# jenkins packages
+jenkins-repo-url: deb https://pkg.jenkins.io/debian-stable
+jenkins-repo-key: deb https://pkg.jenkins.io/debian-stable/jenkins.io.key
+jenkins_package: jenkins
+
+

@@ -1,0 +1,5 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for mvn-inst
+# maven package
+maven_package: maven

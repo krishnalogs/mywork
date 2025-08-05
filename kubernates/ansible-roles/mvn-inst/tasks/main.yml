@@ -1,0 +1,20 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for mvn-inst
+- name: Install Maven
+  apt:
+    name: "{{ maven_package }}"
+    state: present
+    update_cache: yes
+
+- name: Verify Maven installation
+  command: mvn -version
+  register: maven_version
+  changed_when: false
+  failed_when: maven_version.rc != 0
+
+- name: Show Maven version
+  debug:
+    var: maven_version.stdout_lines
+
+

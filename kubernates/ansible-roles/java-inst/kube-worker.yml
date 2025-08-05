@@ -1,0 +1,180 @@
+---
+- name: Setup Kubernetes Worker Node and Join Cluster
+  hosts: ansible-node-kubeworker
+  become: yes
+
+  vars:
+    kube_version: "1.28.15-00"
+    cri_dockerd_version: "master"
+    docker_ubuntu_codename: "noble"  # for Ubuntu 24.04
+    kube_join_ip: "172.31.20.49:6443"
+    kubeadm_token: "carr5o.dr6ilnme1dg1l37r"
+    kubeadm_ca_cert_hash: "sha256:9538c2ad7f143acdc351099fc2f277c92c61fe0f58ab3962312d6075d8b02177"
+
+  tasks:
+    ### Step 0: Clean old keys and repos
+    - name: Remove Docker GPG key
+      file:
+        path: /etc/apt/keyrings/docker.gpg
+        state: absent
+      ignore_errors: true
+
+    - name: Remove Docker APT source list
+      file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: absent
+      ignore_errors: true
+
+    - name: Remove old Kubernetes APT source list (if exists)
+      file:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        state: absent
+
+    - name: Remove old Kubernetes GPG key file (if exists)
+      file:
+        path: /usr/share/keyrings/kubernetes-archive-keyring.gpg
+        state: absent
+
+    - name: Clean apt cache
+      apt:
+        update_cache: yes
+        autoclean: yes
+        autoremove: yes
+
+    ### Step 1: Disable swap
+    - name: Disable swap
+      shell: |
+        swapoff -a
+        sed -i '/ swap / s/^/#/' /etc/fstab
+
+    ### Step 2: Install dependencies
+    - name: Install dependencies
+      apt:
+        name:
+          - curl
+          - apt-transport-https
+          - ca-certificates
+          - gpg
+        state: present
+        update_cache: yes
+
+    ### Step 3: Docker installation
+    - name: Add Docker GPG key
+      shell: |
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        chmod a+r /etc/apt/keyrings/docker.gpg
+
+    - name: Add Docker APT repository
+      copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        content: |
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ docker_ubuntu_codename }} stable
+
+    - name: Install Docker packages
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+        update_cache: yes
+
+    ### Step 4: cri-dockerd installation
+    - name: Clone cri-dockerd repo
+      git:
+        repo: https://github.com/Mirantis/cri-dockerd.git
+        dest: /opt/cri-dockerd
+        version: "{{ cri_dockerd_version }}"
+
+    - name: Build cri-dockerd
+      shell: |
+        cd /opt/cri-dockerd
+        mkdir -p bin
+        go build -o bin/cri-dockerd
+
+    - name: Install cri-dockerd service
+      shell: |
+        cp /opt/cri-dockerd/packaging/systemd/* /etc/systemd/system/
+        sed -i 's:/usr/bin/cri-dockerd:/opt/cri-dockerd/bin/cri-dockerd:' /etc/systemd/system/cri-docker.service
+        systemctl daemon-reexec
+        systemctl daemon-reload
+        systemctl enable cri-docker.service
+        systemctl enable --now cri-docker.socket
+
+    ### Step 5: Kubernetes installation
+    - name: Add Kubernetes GPG key (new method)
+      ansible.builtin.get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        mode: '0644'
+
+    - name: Add Kubernetes apt repository (new source)
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /"
+        filename: kubernetes
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Kubernetes components
+      apt:
+        name:
+          - kubelet={{ kube_version }}
+          - kubeadm={{ kube_version }}
+          - kubectl={{ kube_version }}
+        state: present
+        update_cache: yes
+          
+    - name: Hold Kubernetes packages
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        allow_unauthenticated: yes
+        autoremove: no
+        force: yes
+      register: hold_output
+    - name: Disable swap
+      command: swapoff -a
+
+    - name: Comment out swap in fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*swap)'
+        replace: '# \1'
+
+    - name: Enable and start kubelet
+      systemd:
+        name: kubelet
+        enabled: yes
+        state: started
+
+    - name: Enable required kernel modules
+      command: modprobe overlay && modprobe br_netfilter
+      
+
+    - name: Set sysctl parameters for Kubernetes
+      copy:
+        dest: /etc/sysctl.d/k8s.conf
+        content: |
+          net.bridge.bridge-nf-call-iptables = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward = 1
+
+    - name: Apply sysctl settings
+      command: sysctl --system
+
+    - name: Join the Kubernetes cluster
+      become: yes
+      command: >
+        kubeadm join 172.31.20.49:6443 
+        --cri-socket unix:///var/run/cri-dockerd.sock 
+        --token carr5o.dr6ilnme1dg1l37r 
+        --discovery-token-ca-cert-hash sha256:9538c2ad7f143acdc351099fc2f277c92c61fe0f58ab3962312d6075d8b02177
+      register: join_output
+      ignore_errors: true
